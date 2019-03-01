@@ -11,15 +11,58 @@ from ontology import Ontology
 from itertools import chain
 import pygame
 import glo
+import heapq
 
 import random 
 import numpy as np
 import sys
 
-
 # ---- ---- ---- ---- ---- ----
 # ---- Misc                ----
 # ---- ---- ---- ---- ---- ----
+def heuristique(p1, p2):
+	(x1, y1) = p1
+	(x2, y2) = p2
+	return abs(x1-x2) + abs(y1-y2)
+class Node:
+    def __init__(self,row,col, parent = None,cost=0,depl=None, p= None):
+        self.parent = parent
+        self.childNodes, self.cost, self.row = [], cost, row
+        self.depl = depl
+        self.col ,self.imm = col, str(row)+ str(col)
+        self.p = p
+        self.h = heuristique((row, col), self.p)        
+		    
+    def AddChild(self, cost,depl): 
+        n = Node(self.row + depl[0],self.col + depl[1], self, cost,depl,self.p)
+        self.childNodes.append(n)
+        return n
+
+    def __repr__(self):
+        return "[M:" + str(self.move) + " W/V:" + str(self.wins) + "/" + str(self.visits) + " U:" + str(self.untriedMoves) + "]"
+
+    def TreeToString(self, indent):
+        s = self.IndentString(indent) + str(self)
+        for c in self.childNodes:
+             s += c.TreeToString(indent+1)
+        return s
+
+    def IndentString(self,indent):
+        s = "\n"
+        for i in range (1,indent+1):
+            s += "| "
+        return s
+
+    def ChildrenToString(self):
+        s = ""
+        for c in self.childNodes:
+             s += str(c) + "\n"
+        return s
+	
+
+
+
+
 
 
 
@@ -48,7 +91,7 @@ def main():
         iterations = int(sys.argv[1])
     print ("Iterations: ")
     print (iterations)
-
+	
     init()
     
 
@@ -74,11 +117,52 @@ def main():
     #-------------------------------
     # Building the best path with A*
     #-------------------------------
+    """ nodeInit = Noeud(p.init,0,None)
+    frontiere = [(nodeInit.g+p.h_value(nodeInit.etat,p.but),nodeInit)] 
+    reserve = {}        
+    bestNoeud = nodeInit
     
+    while frontiere != [] and not p.estBut(bestNoeud.etat):              
+        (min_f,bestNoeud) = heapq.heappop(frontiere)         
+    # Suppose qu'un noeud en réserve n'est jamais ré-étendu 
+    # Hypothèse de consistence de l'heuristique
+    # ne gère pas les duplicatas dans la frontière
+    
+        if p.immatriculation(bestNoeud.etat) not in reserve:            
+            reserve[p.immatriculation(bestNoeud.etat)] = bestNoeud.g #maj de reserve
+            nouveauxNoeuds = bestNoeud.expand(p)            
+            for n in nouveauxNoeuds:
+                f = n.g+p.h_value(n.etat,p.but)
+                heapq.heappush(frontiere, (f,n))              
+    # Afficher le résultat                    
+    return"""
+    print(initStates[0][0])
+    racine = Node (initStates[0][0], initStates[0][1], p=goalStates[0])
+    frontiere = [(racine.h+racine.cost,racine)]
+    reserve = {}
+    bestNoeud = racine
+    while frontiere != [] and not (bestNoeud.row,bestNoeud.col)==goalStates[0]:              
+        (min_f,bestNoeud) = heapq.heappop(frontiere)#comment gerer
+        if bestNoeud.imm not in reserve: 
+            reserve[bestNoeud.imm] = bestNoeud.cost #maj de reserve
+            newNodes = [bestNoeud.AddChild(1, i) for i in [(0,1),(0,-1),(1,0),(-1,0)]]
+            for n in newNodes:
+                f = n.cost+ n.h
+                heapq.heappush(frontiere, (f, n))
+    
+    if (bestNoeud.row,bestNoeud.col)==goalStates[0]:
+        res = []		
+        r= bestNoeud
+        while(r.parent != None):
+            res.append(r.depl)
+            r = r.parent
+           
+      
+	
 
     
-    
-        
+    reversed(res)
+    print(res)    
     #-------------------------------
     # Moving along the path
     #-------------------------------
@@ -92,7 +176,7 @@ def main():
     for i in range(iterations):
     
     
-        x_inc,y_inc = random.choice([(0,1),(0,-1),(1,0),(-1,0)])
+        x_inc,y_inc = res.pop(0)
         next_row = row+x_inc
         next_col = col+y_inc
         if ((next_row,next_col) not in wallStates) and next_row>=0 and next_row<=20 and next_col>=0 and next_col<=20:
