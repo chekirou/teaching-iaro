@@ -20,51 +20,90 @@ import sys
 # ---- ---- ---- ---- ---- ----
 # ---- Misc                ----
 # ---- ---- ---- ---- ---- ----
-def heuristique(p1, p2):
-	(x1, y1) = p1
-	(x2, y2) = p2
-	return abs(x1-x2) + abs(y1-y2)
-class Node:
-    def __init__(self,row,col, parent = None,cost=0,depl=None, p= None):
-        self.parent = parent
-        self.childNodes, self.cost, self.row = [], cost, row
-        self.depl = depl
-        self.col ,self.imm = col, str(row)+ str(col)
-        self.p = p
-        self.h = heuristique((row, col), self.p)        
-		    
-    def AddChild(self, cost,depl): 
-        n = Node(self.row + depl[0],self.col + depl[1], self, cost,depl,self.p)
-        self.childNodes.append(n)
-        return n
+def distManhattan(p1,p2):
+    """ calcule la distance de Manhattan entre le tuple 
+        p1 et le tuple p2
+        """
+    (x1,y1)=p1
+    (x2,y2)=p2
+    return abs(x1-x2)+abs(y1-y2)
 
-    def __repr__(self):
-        return "[M:" + str(self.move) + " W/V:" + str(self.wins) + "/" + str(self.visits) + " U:" + str(self.untriedMoves) + "]"
-
-    def TreeToString(self, indent):
-        s = self.IndentString(indent) + str(self)
-        for c in self.childNodes:
-             s += c.TreeToString(indent+1)
-        return s
-
-    def IndentString(self,indent):
-        s = "\n"
-        for i in range (1,indent+1):
-            s += "| "
-        return s
-
-    def ChildrenToString(self):
-        s = ""
-        for c in self.childNodes:
-             s += str(c) + "\n"
-        return s
+class Noeud:
+    def __init__(self, x,y,  g, pere=None):
+        self.x = x
+        self.y = y 
+        self.g = g
+        self.pere = pere
+        
+    def __str__(self):
+        #return np.array_str(self.etat) + "valeur=" + str(self.g)
+        return str(self.x)+", " +str(self.y)  + " valeur=" + str(self.g)
+        
+    def __eq__(self, other):
+        return str(self) == str(other)
+        
+    def __lt__(self, other):
+        return str(self) < str(other)
+        
+    def expand(self):
+        """ étend un noeud avec ces fils
+            pour un probleme de taquin p donné
+            """
+        nouveaux_fils = [Noeud(self.x + s[0],self.y+ s[1], self.g+1,self) for s in [(1,0), (0,1), (0,-1), (-1,0)]]
+        return nouveaux_fils
+    def expandNext(self,p,k):
+        """ étend un noeud unique, le k-ième fils du noeud n
+            ou liste vide si plus de noeud à étendre
+        """
+        nouveaux_fils = self.expand()
+        if len(nouveaux_fils)<k: 
+            return []
+        else: 
+            return self.expand()[k-1]
+            
+    def trace(self):
+        """ affiche tous les ancetres du noeud
+            """
+        n = self
+        c=0    
+        while n!=None :
+            print (n)
+            n = n.pere
+            c+=1
+        print ("Nombre d'étapes de la solution:", c-1)
+        return
 	
 
 
 
 
-
-
+def astar(initStates, goalStates, wallStates ):
+    """ application de l'algorithme a-star sur un probleme donné
+        """
+    nodeInit = Noeud(initStates[0][0], initStates[0][1],0,None)
+    frontiere = [(nodeInit.g+distManhattan((nodeInit.x, nodeInit.y),goalStates[0]),nodeInit)] 
+    reserve = {}        
+    bestNoeud = nodeInit
+    
+    while frontiere != [] and not (goalStates[0]==(bestNoeud.x, bestNoeud.y)):              
+        (min_f,bestNoeud) = heapq.heappop(frontiere)         
+    # Suppose qu'un noeud en réserve n'est jamais ré-étendu 
+    # Hypothèse de consistence de l'heuristique
+    # ne gère pas les duplicatas dans la frontière
+    
+        if str(bestNoeud.x) + " " + str(bestNoeud.y) not in reserve:            
+            reserve[str(bestNoeud.x) + " " + str(bestNoeud.y)] = bestNoeud.g #maj de reserve
+            nouveauxNoeuds = bestNoeud.expand()            
+            for n in nouveauxNoeuds:
+                f = n.g+distManhattan((n.x, n.y),goalStates[0])
+                heapq.heappush(frontiere, (f,n))              
+    # Afficher le résultat  
+    res = []
+    while(bestNoeud.pere != None):
+        res.append((bestNoeud.x - bestNoeud.pere.x, bestNoeud.y - bestNoeud.pere.y))   
+        bestNoeud = bestNoeud.pere   
+    print(res)            
+    return res
 
 
 # ---- ---- ---- ---- ---- ----
@@ -111,31 +150,17 @@ def main():
         
     # on localise tous les murs
     wallStates = [w.get_rowcol() for w in game.layers['obstacle']]
-    #print ("Wall states:", wallStates)
+    print ("Wall states:", wallStates)
         
-    
+    res = astar(initStates, goalStates, wallStates )
+    res = list(reversed(res))
+    """
     #-------------------------------
     # Building the best path with A*
     #-------------------------------
-    """ nodeInit = Noeud(p.init,0,None)
-    frontiere = [(nodeInit.g+p.h_value(nodeInit.etat,p.but),nodeInit)] 
-    reserve = {}        
-    bestNoeud = nodeInit
-    
-    while frontiere != [] and not p.estBut(bestNoeud.etat):              
-        (min_f,bestNoeud) = heapq.heappop(frontiere)         
-    # Suppose qu'un noeud en réserve n'est jamais ré-étendu 
-    # Hypothèse de consistence de l'heuristique
-    # ne gère pas les duplicatas dans la frontière
-    
-        if p.immatriculation(bestNoeud.etat) not in reserve:            
-            reserve[p.immatriculation(bestNoeud.etat)] = bestNoeud.g #maj de reserve
-            nouveauxNoeuds = bestNoeud.expand(p)            
-            for n in nouveauxNoeuds:
-                f = n.g+p.h_value(n.etat,p.but)
-                heapq.heappush(frontiere, (f,n))              
+                 
     # Afficher le résultat                    
-    return"""
+    
     print(initStates[0][0])
     racine = Node (initStates[0][0], initStates[0][1], p=goalStates[0])
     frontiere = [(racine.h+racine.cost,racine)]
@@ -159,23 +184,21 @@ def main():
            
       
 	
-
     
-    reversed(res)
-    print(res)    
+    
     #-------------------------------
     # Moving along the path
     #-------------------------------
         
     # bon ici on fait juste un random walker pour exemple...
     
-
+    """
     row,col = initStates[0]
     #row2,col2 = (5,5)
 
     for i in range(iterations):
     
-    
+        print(res) 
         x_inc,y_inc = res.pop(0)
         next_row = row+x_inc
         next_col = col+y_inc
@@ -203,7 +226,6 @@ def main():
 
     pygame.quit()
     
-        
     
    
 
