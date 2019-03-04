@@ -95,8 +95,9 @@ def astar(initStates, goalStates, wallStates ):
             reserve[str(bestNoeud.x) + " " + str(bestNoeud.y)] = bestNoeud.g #maj de reserve
             nouveauxNoeuds = bestNoeud.expand()            
             for n in nouveauxNoeuds:
-                f = n.g+distManhattan((n.x, n.y),goalStates[0])
-                heapq.heappush(frontiere, (f,n))              
+                if (n.x,n.y) not in wallStates :
+                    f = n.g+distManhattan((n.x, n.y),goalStates[0])
+                    heapq.heappush(frontiere, (f,n))              
     # Afficher le résultat  
     res = []
     while(bestNoeud.pere != None):
@@ -154,45 +155,7 @@ def main():
         
     res = astar(initStates, goalStates, wallStates )
     res = list(reversed(res))
-    """
-    #-------------------------------
-    # Building the best path with A*
-    #-------------------------------
-                 
-    # Afficher le résultat                    
-    
-    print(initStates[0][0])
-    racine = Node (initStates[0][0], initStates[0][1], p=goalStates[0])
-    frontiere = [(racine.h+racine.cost,racine)]
-    reserve = {}
-    bestNoeud = racine
-    while frontiere != [] and not (bestNoeud.row,bestNoeud.col)==goalStates[0]:              
-        (min_f,bestNoeud) = heapq.heappop(frontiere)#comment gerer
-        if bestNoeud.imm not in reserve: 
-            reserve[bestNoeud.imm] = bestNoeud.cost #maj de reserve
-            newNodes = [bestNoeud.AddChild(1, i) for i in [(0,1),(0,-1),(1,0),(-1,0)]]
-            for n in newNodes:
-                f = n.cost+ n.h
-                heapq.heappush(frontiere, (f, n))
-    
-    if (bestNoeud.row,bestNoeud.col)==goalStates[0]:
-        res = []		
-        r= bestNoeud
-        while(r.parent != None):
-            res.append(r.depl)
-            r = r.parent
-           
-      
-	
-    
-    
-    #-------------------------------
-    # Moving along the path
-    #-------------------------------
-        
-    # bon ici on fait juste un random walker pour exemple...
-    
-    """
+
     row,col = initStates[0]
     #row2,col2 = (5,5)
 
@@ -231,6 +194,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    
-
-
